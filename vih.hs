@@ -13,7 +13,6 @@ data EditMode = Command | Insert deriving (Eq,Show)
 main :: IO ()
 main =
   do initInput 
---     mainLoop Command emptyBuffer 
      args <- getArgs
      case args of
               [f] -> do contents <- readFile f
