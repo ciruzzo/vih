@@ -43,37 +43,29 @@ mainLoop mode f yExt previousBuffer =
                        then mainLoop mode f yExt (insertChar ch buffer)
                        else mainLoop mode f yExt buffer
        else
-         case ch of
-           ':' -> do str <- promptAndRead ":" yExt
-                     handleCommand buffer f yExt str
-           '/' -> do str <- promptAndRead "/" yExt
-                     mainLoop mode f yExt (searchForward str buffer)
-           'i' -> mainLoop Insert f yExt buffer
-           'h' -> mainLoop mode f yExt (moveLeft buffer)
-           'j' -> mainLoop mode f yExt (moveDown buffer)
-           'k' -> mainLoop mode f yExt (moveUp buffer) 
-           'l' -> mainLoop mode f yExt (moveRight buffer)
-           'd' -> do nextCh <- getInputChar
-                     if nextCh == 'd' 
-                        then mainLoop mode f yExt (deleteLine buffer) 
-                        else mainLoop mode f yExt buffer
-           'g' -> do nextCh <- getInputChar
-                     if nextCh == 'g' 
-                        then mainLoop mode f yExt (moveToHome buffer) 
-                        else mainLoop mode f yExt buffer 
-           'G' -> mainLoop mode f yExt (moveToEnd buffer)
-           '0' -> mainLoop mode f yExt (moveToLineStart buffer)
-           '$' -> mainLoop mode f yExt (moveToLineEnd buffer)
-           'o' -> mainLoop Insert f yExt (insertLineAfter buffer)
-           'r' -> do nextCh <- getInputChar 
-                     if isInputChar nextCh
-                       then mainLoop mode f yExt (replaceChar nextCh buffer)
-                       else mainLoop mode f yExt buffer
-           'w' -> mainLoop mode f yExt (wordForward buffer)
-           'b' -> mainLoop mode f yExt (wordBackward buffer)
-           'x' -> mainLoop mode f yExt (deleteChar buffer)
-           _   -> mainLoop mode f yExt buffer
-
+         case lookup ch keyActions of
+           Just act -> mainLoop mode f yExt (act buffer)
+           _        -> case ch of        
+             ':' -> do str <- promptAndRead ":" yExt
+                       handleCommand buffer f yExt str
+             '/' -> do str <- promptAndRead "/" yExt
+                       mainLoop mode f yExt (searchForward str buffer)
+             'i' -> mainLoop Insert f yExt buffer
+             'o' -> mainLoop Insert f yExt (insertLineAfter buffer)
+             'd' -> do nextCh <- getInputChar
+                       if nextCh == 'd'
+                         then mainLoop mode f yExt (deleteLine buffer)
+                         else mainLoop mode f yExt buffer
+             'g' -> do nextCh <- getInputChar
+                       if nextCh == 'g'
+                         then mainLoop mode f yExt (moveToHome buffer)
+                         else mainLoop mode f yExt buffer
+             'r' -> do nextCh <- getInputChar
+                       if isInputChar nextCh
+                         then mainLoop mode f yExt (replaceChar nextCh buffer)
+                         else mainLoop mode f yExt buffer
+             'x' -> mainLoop mode f yExt (deleteChar buffer)
+             _   -> mainLoop mode f yExt buffer
 
 -- aborts when line command is not parseable.  Fix with exception catch
 handleCommand :: EditBuffer -> FilePath -> Int -> String -> IO ()

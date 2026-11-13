@@ -16,6 +16,7 @@ module EditBuffer
      , frame
      , showRepresentation
      , searchForward 
+     , keyActions 
      ) 
 where
 
@@ -192,3 +193,16 @@ searchForward pat buffer@(EditBuffer topLine _ contents) =
        Just i  -> forceLocation (EditBuffer topLine
                     (locationFromPosition (pos + i) contents) contents)
        Nothing -> buffer                   
+
+keyActions :: [(Char, EditBuffer -> EditBuffer)]
+keyActions =
+  [ ('h', moveLeft)
+  , ('j', moveDown)
+  , ('k', moveUp)
+  , ('l', moveRight)
+  , ('w', wordForward)
+  , ('b', wordBackward)
+  , ('G', moveToEnd)
+  , ('0', moveToLineStart)
+  , ('$', moveToLineEnd)
+  ]
