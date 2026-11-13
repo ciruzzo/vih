@@ -19,6 +19,12 @@ main =
                         mainLoop Command f (EditBuffer 0 (0,0) contents)
               _   -> mainLoop Command "" (EditBuffer 0 (0,0) "")
 
+promptAndRead :: String -> IO String
+promptAndRead p =
+  do goto commandHome
+     putStr p
+     getLine
+
 mainLoop :: EditMode -> FilePath -> EditBuffer -> IO ()
 mainLoop mode f previousBuffer = 
   do cls
@@ -35,7 +41,10 @@ mainLoop mode f previousBuffer =
                        else mainLoop mode f buffer
        else
          case ch of
-           ':' -> handleCommandLine buffer f
+           ':' -> do str <- promptAndRead ":"
+                     handleCommand buffer f str
+           '/' -> do str <- promptAndRead "/"
+                     mainLoop mode f (searchForward str buffer)
            'i' -> mainLoop Insert f buffer
            'h' -> mainLoop mode f (moveLeft buffer)
            'j' -> mainLoop mode f (moveDown buffer)
@@ -64,13 +73,13 @@ mainLoop mode f previousBuffer =
 
 
 -- aborts when line command is not parseable.  Fix with exception catch
-handleCommandLine :: EditBuffer -> FilePath -> IO ()
-handleCommandLine buffer f =
+handleCommand :: EditBuffer -> FilePath -> String -> IO ()
+handleCommand buffer f command =
   do goto commandHome
      putStr ":"
-     command <- getLine
      case command of
        ('q':_)                           -> return ()
+       ("wq") | not (null f)             -> writeFile f (getBufferContents buffer)
        ('w':_) | not (null f)            -> do writeFile f (getBufferContents buffer)
                                                mainLoop Command f buffer
        (c:_)   | isDigit c               -> mainLoop Command f (moveToLine (read command :: Int) buffer)

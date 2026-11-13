@@ -15,10 +15,12 @@ module EditBuffer
      , wordForward, wordBackward
      , frame
      , showRepresentation
+     , searchForward 
      ) 
 where
 
 import Data.Char
+import Data.List (isPrefixOf, tails, findIndex)   -- importに追加
 
 type Location = (Int, Int)
 data EditBuffer = EditBuffer Int Location String deriving (Eq,Show)
@@ -179,3 +181,14 @@ numberedElements = (flip zip) [0..]
 numberedLines :: String -> [(String,Int)]
 numberedLines = numberedElements . lines
 
+findSubstring :: String -> String -> Maybe Int
+findSubstring pat s = findIndex (isPrefixOf pat) (tails s)
+
+searchForward :: String -> EditBuffer -> EditBuffer
+searchForward pat buffer@(EditBuffer topLine _ contents) =
+  let pos    = absPosition buffer + 1          
+      rest   = drop pos contents
+  in case findSubstring pat rest of
+       Just i  -> forceLocation (EditBuffer topLine
+                    (locationFromPosition (pos + i) contents) contents)
+       Nothing -> buffer                   
