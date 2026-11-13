@@ -65,7 +65,7 @@ Note that this installs QuickCheck for the distro GHC, not for any GHC
 installed via ghcup. Build the test with the distro GHC:
 
 ```sh
-/usr/bin/ghc --make Eb_Check.hs -o eb_check
+ghc --make Eb_Check.hs -o eb_check
 ./eb_check
 ```
 

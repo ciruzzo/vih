@@ -1,5 +1,3 @@
-
-
 module Rendering
      ( render
      , cls
@@ -12,9 +10,6 @@ where
 
 import EditBuffer
 import System.IO
-
--- yExtent :: Int
--- yExtent = 23
 
 home :: Location
 home = (0,0)
