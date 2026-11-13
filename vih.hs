@@ -26,7 +26,6 @@ mainLoop mode f previousBuffer =
      buffer <- return (frame previousBuffer) 
      render buffer
      -- writeAt commandHome (showRepresentation buffer)
-     --writeAt commandHome (take 78 (showRepresentation buffer))
      ch <- getInputChar
      if mode == Insert
        then 
