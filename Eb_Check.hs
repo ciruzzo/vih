@@ -1,16 +1,14 @@
-
-
 import Test.QuickCheck
 import EditBuffer
 
-instance Arbitrary Char where
-  arbitrary = elements printableRange
-    where printableRange = [' '..'~']
+main = do 
+  quickCheck prop_insert_delete_inverse; 
+  quickCheck prop_insert_char_advances
 
-prop_insert_delete_inverse ch = 
-  emptyBuffer == (deleteChar . moveLeft .insertChar ch) emptyBuffer 
+prop_insert_delete_inverse ch =
+  ch /= '\n' ==> emptyBuffer == (deleteChar . moveLeft . insertChar ch) emptyBuffer
 
-prop_insert_char_advances n = 
+prop_insert_char_advances n =
   n >= 0 ==> n == x
-               where (EditBuffer(x,_) contents) = (iterate (insertChar 'a') emptyBuffer) !! n
+               where (EditBuffer _ (x, _) _) = (iterate (insertChar 'a') emptyBuffer) !! n
 
