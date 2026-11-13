@@ -12,8 +12,8 @@ main :: IO ()
 main =
   do 
      dims <- size
-     let ext = maybe 33 height dims          -- 取得不可なら3行安全圏にフォールバック
-         yExt = min 40 (ext - 2)             -- 40上限+デバッグ行/マージン分を引く
+     let ext = maybe 33 height dims
+         yExt = min 40 (ext - 2) 
 
      initInput 
      args <- getArgs
