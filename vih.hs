@@ -2,22 +2,30 @@
 import EditBuffer
 import Rendering
 import Input
-import Char
+import Data.Char
 import Control.Exception
+import System.Environment (getArgs)
+
+import Debug.Trace
 
 data EditMode = Command | Insert deriving (Eq,Show)
 
-vih :: IO ()
-vih =
+main :: IO ()
+main =
   do initInput 
-     mainLoop Command emptyBuffer 
+--     mainLoop Command emptyBuffer 
+     args <- getArgs
+     contents <- case args of
+                   [f] -> readFile f
+                   _   -> return ""
+     mainLoop Command (EditBuffer 0 (0,0) contents)
 
 mainLoop :: EditMode -> EditBuffer -> IO ()
 mainLoop mode previousBuffer = 
   do cls
      buffer <- return (frame previousBuffer) 
      render buffer
-     -- writeAt commandHome (showRepresentation buffer)
+     writeAt commandHome (showRepresentation buffer)
      ch <- getInputChar
      if mode == Insert
        then 
