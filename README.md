@@ -96,7 +96,6 @@ The original repository has been unmaintained since ~2009. This fork fixes:
 
 ## Known issues / TODO
 
-- Query the actual terminal size and make `yExtent` dynamic
 - Wrap or truncate lines longer than 80 columns
 - Resolve the `[-Wx-partial]` warning on `tail` in `deleteChar`
 - Arrow keys (escape-sequence input) support
