@@ -1,94 +1,108 @@
 # vih
 
-Michael Feathers による Haskell 製の vi クローン (~2009) の修正版 fork です。
-外部のビルドシステム(cabal/stack)に依存せず、素の GHC でビルドできるシンプルな.hsファイル群で構成されています。
+A fixed fork of *vih*, a vi clone in Haskell by Michael Feathers (~2009).
+It consists of plain .hs files with no build system (cabal/stack) required —
+just a bare GHC.
 
-## これは何
+## What is this
 
-vi 風のフルスクリーンエディタ。ファイルを開いて編集し、`:w` で保存できます。
+A full-screen editor in the vi style. Open a file, edit it, and save with `:w`.
 
-対応している主なキー操作(コマンドモード):
+Supported key bindings (command mode):
 
-| キー | 動作 |
+| Key | Action |
 |------|------|
-| `h` `j` `k` `l` | カーソル移動(左・下・上・右) |
-| `w` `b` | 単語単位の移動(前進・後退) |
-| `0` `$` | 行頭・行末へ移動 |
-| `gg` `G` | ファイル先頭・末尾へ移動 |
-| `i` | 挿入モードへ移行(`ESC` で戻る) |
-| `o` | 現在行の下に新規行を挿入して挿入モードへ |
-| `x` | カーソル位置の文字を削除 |
-| `r` + 文字 | カーソル位置の文字を置換 |
-| `dd` | 現在行を削除 |
-| `:` + コマンド | コマンドライン(`:w`=保存, `:q`=終了, 数字=指定行へ移動) |
+| `h` `j` `k` `l` | Move cursor (left, down, up, right) |
+| `w` `b` | Word-wise movement (forward, backward) |
+| `0` `$` | Beginning / end of line |
+| `gg` `G` | Top / bottom of file |
+| `i` | Enter insert mode (`ESC` to leave) |
+| `o` | Open a new line below and enter insert mode |
+| `x` | Delete the character under the cursor |
+| `r` + char | Replace the character under the cursor |
+| `dd` | Delete the current line |
+| `:` + command | Command line (`:w` = save, `:q` = quit, digits = jump to line) |
 
-## ビルドと実行
+## Building and running
 
-GHC のみが必要です:
+Only GHC is required:
 
 ```sh
 ghc --make vih.hs
 ./vih somefile.txt
 ```
 
-## 端末サイズに関する重要な注意
+## Important note on terminal size
 
-このエディタは画面の高さを **`yExtent = 40` 行** としてハードコードしています(Rendering.hs)。
-また行の折り返し(80文字超の行)には対応していません。
+This editor hard-codes the screen height as **`yExtent = 40` lines** (Rendering.hs),
+and does not handle wrapping of lines longer than 80 characters.
 
-**端末は最低でも 42 行 × 80 列以上** を前提としてください。それより低い端末で起動すると、
-描画が端末をあふれてスクロールし、画面が崩れます。確認するには:
+**Your terminal should be at least 42 lines × 80 columns.** On a smaller terminal,
+each redraw overflows the screen and causes scrolling, breaking the display.
+To check:
 
 ```sh
 stty size
-# 例: "47 80" = 47行 × 80列 → OK
+# e.g. "47 80" = 47 lines × 80 columns → OK
 ```
 
-高さが足りない場合は端末をリサイズするか、Rendering.hs の `yExtent` を
-環境に合わせて小さく修正してください(`commandHome` は `yExtent` から自動計算されるため、
-変更は1箇所で済みます)。
+If your terminal is too small, resize it, or adjust `yExtent` in Rendering.hs
+to fit your environment (`commandHome` is derived from `yExtent`, so a single
+change is enough).
 
-## 純粋コアのプロパティテスト
+## Property tests for the pure core
 
-`EditBuffer`(バッファの中核ロジック)は完全に純粋な関数群として分離されており、
-QuickCheck でプロパティテストが書ける構造になっています。
+`EditBuffer` (the core buffer logic) is a fully pure module, structured so
+that QuickCheck properties can be written against it.
 
-Ubuntu/Debian 系の場合、テスト用の依存は distro パッケージで入れられます:
+On Ubuntu/Debian, install the test dependency as a distro package:
 
 ```sh
 sudo apt install libghc-quickcheck2-dev
 ```
 
-テストの実行は apt 版 GHC で(ghcup 等の別 GHC に入るパッケージなので注意):
+Note that this installs QuickCheck for the distro GHC, not for any GHC
+installed via ghcup. Build the test with the distro GHC:
 
 ```sh
 /usr/bin/ghc --make Eb_Check.hs -o eb_check
 ./eb_check
 ```
 
-検証しているプロパティ:
+Properties verified:
 
-- `prop_insert_delete_inverse`: 挿入→左移動→削除 で元の空バッファに戻ること(改行を除く。改行の削除は未実装)
-- `prop_insert_char_advances`: 挿入を n 回繰り返すとカーソル位置 x がちょうど n 進むこと
+- `prop_insert_delete_inverse`: insert → move left → delete returns the buffer
+  to the original empty state (newline excluded — newline deletion is not implemented)
+- `prop_insert_char_advances`: inserting n times advances the cursor position x by exactly n
 
-## このforkでの修正履歴
+## Fixes in this fork
 
-原典(~2009年放置)から以下を修正・追加しました:
+The original repository has been unmaintained since ~2009. This fork fixes:
 
-1. **起動引数からのファイル読み込みを実装** — 原典の `main` は `getArgs` を呼ばず常に空バッファで開始していたため、`./vih file` としても内容が表示されなかった
-2. **`:w` による保存を実装** — コマンドライン処理にファイル書き出しを追加。ファイル名を `mainLoop` 経由で `handleCommandLine` まで手渡しする形に変更
-3. **`handleCommandLine` の解析を `case` 式に書き直し** — 原典の `head command` は空行入力でクラッシュするため(原典のコメントにも "aborts when line command is not parseable. Fix with exception catch" と残題があった)、パターンマッチで安全化
-4. **ANSI エスケープシーケンスの修正** — `goto` 内の `"; "` に紛れ込んでいたスペースが CSI シーケンスを無効化していた問題、`cls` がカーソルを原点に戻さない問題
-5. **stdout の `NoBuffering` 設定** — エスケープシーケンスが出力バッファに滞留しないように
+1. **Loading a file from the command-line argument** — the original `main` never
+   called `getArgs` and always started from an empty buffer, so `./vih file`
+   displayed nothing
+2. **Saving with `:w`** — added file writing to the command-line handling;
+   the file name is now threaded from `main` through `mainLoop` to `handleCommandLine`
+3. **Rewrote `handleCommandLine` parsing with a `case` expression** — the original
+   `head command` crashed on an empty input line (the original source even left
+   the comment "aborts when line command is not parseable. Fix with exception catch");
+   now handled safely with pattern matching
+4. **Fixed ANSI escape sequences** — a stray space in `"; "` inside `goto` silently
+   disabled the CSI cursor-position sequence, and `cls` did not reset the cursor
+   to the origin
+5. **Set stdout to `NoBuffering`** — so escape sequences no longer linger in the
+   output buffer
 
-## 残課題
+## Known issues / TODO
 
-- 端末の実寸(win size)の取得と `yExtent` の動的化
-- 長い行(80文字超)の折り返しまたは切り詰め
-- `deleteChar` の `tail` による部分関数警告([-Wx-partial])の解消
-- 矢印キー(エスケープシーケンス入力)への対応
-- undo
+- Query the actual terminal size and make `yExtent` dynamic
+- Wrap or truncate lines longer than 80 columns
+- Resolve the `[-Wx-partial]` warning on `tail` in `deleteChar`
+- Arrow keys (escape-sequence input) support
+- Undo
 
-## ライセンス
+## License
 
-原典の license.txt(MIT License, Copyright (c) 2009 Michael Feathers)を引き継ぎます。
+MIT License — inherited from the original license.txt
+(Copyright (c) 2009 Michael Feathers).
