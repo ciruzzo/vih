@@ -28,8 +28,8 @@ cls = putStr "\ESC[2J\ESC[H"
 
 render :: EditBuffer -> IO ()
 render (EditBuffer topLine (x,y) contents) = do 
-  writeAt home $ window screenLines 
-  goto (x, y - topLine)
+    writeAt home $ window screenLines 
+    goto (x, y - topLine)
     where window       = unlines . take yExtent . drop topLine  
           screenLines  = (lines contents) ++ (repeat "~")
 
