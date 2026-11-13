@@ -18,14 +18,16 @@ main =
      contents <- case args of
                    [f] -> readFile f
                    _   -> return ""
-     mainLoop Command (EditBuffer 0 (0,0) contents)
+--     mainLoop Command (EditBuffer 0 (0,0) contents)
+     mainLoop Command (EditBuffer 0 (5,3) contents)
 
 mainLoop :: EditMode -> EditBuffer -> IO ()
 mainLoop mode previousBuffer = 
   do cls
      buffer <- return (frame previousBuffer) 
      render buffer
-     writeAt commandHome (showRepresentation buffer)
+     -- writeAt commandHome (showRepresentation buffer)
+     writeAt commandHome (take 78 (showRepresentation buffer))
      ch <- getInputChar
      if mode == Insert
        then 
