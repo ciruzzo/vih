@@ -3,87 +3,90 @@ import EditBuffer
 import Rendering
 import Input
 import Data.Char
-import Control.Exception
 import System.Environment (getArgs)
-
-import Debug.Trace
+import System.Console.Terminal.Size (size, height, width)
 
 data EditMode = Command | Insert deriving (Eq,Show)
 
 main :: IO ()
 main =
-  do initInput 
+  do 
+     dims <- size
+     let ext = maybe 33 height dims          -- 取得不可なら3行安全圏にフォールバック
+         yExt = min 40 (ext - 2)             -- 40上限+デバッグ行/マージン分を引く
+
+     initInput 
      args <- getArgs
      case args of
               [f] -> do contents <- readFile f
-                        mainLoop Command f (EditBuffer 0 (0,0) contents)
-              _   -> mainLoop Command "" (EditBuffer 0 (0,0) "")
+                        mainLoop Command f yExt (EditBuffer 0 (0,0) contents)
+              _   -> mainLoop Command "" yExt (EditBuffer 0 (0,0) "")
 
-promptAndRead :: String -> IO String
-promptAndRead p =
-  do goto commandHome
+promptAndRead :: String -> Int ->  IO String
+promptAndRead p yExt =
+  do goto (commandHome yExt)
      putStr p
      getLine
 
-mainLoop :: EditMode -> FilePath -> EditBuffer -> IO ()
-mainLoop mode f previousBuffer = 
+mainLoop :: EditMode -> FilePath -> Int -> EditBuffer -> IO ()
+mainLoop mode f yExt previousBuffer = 
   do cls
-     buffer <- return (frame previousBuffer) 
-     render buffer
+     buffer <- return (frame yExt previousBuffer) 
+     render yExt buffer
      -- writeAt commandHome (showRepresentation buffer)
      ch <- getInputChar
      if mode == Insert
        then 
          case ch of 
-           '\ESC' -> mainLoop Command f (enterCommandMode buffer)
+           '\ESC' -> mainLoop Command f yExt (enterCommandMode buffer)
            _      -> if isInputChar ch 
-                       then mainLoop mode f (insertChar ch buffer)
-                       else mainLoop mode f buffer
+                       then mainLoop mode f yExt (insertChar ch buffer)
+                       else mainLoop mode f yExt buffer
        else
          case ch of
-           ':' -> do str <- promptAndRead ":"
-                     handleCommand buffer f str
-           '/' -> do str <- promptAndRead "/"
-                     mainLoop mode f (searchForward str buffer)
-           'i' -> mainLoop Insert f buffer
-           'h' -> mainLoop mode f (moveLeft buffer)
-           'j' -> mainLoop mode f (moveDown buffer)
-           'k' -> mainLoop mode f (moveUp buffer) 
-           'l' -> mainLoop mode f (moveRight buffer)
+           ':' -> do str <- promptAndRead ":" yExt
+                     handleCommand buffer f yExt str
+           '/' -> do str <- promptAndRead "/" yExt
+                     mainLoop mode f yExt (searchForward str buffer)
+           'i' -> mainLoop Insert f yExt buffer
+           'h' -> mainLoop mode f yExt (moveLeft buffer)
+           'j' -> mainLoop mode f yExt (moveDown buffer)
+           'k' -> mainLoop mode f yExt (moveUp buffer) 
+           'l' -> mainLoop mode f yExt (moveRight buffer)
            'd' -> do nextCh <- getInputChar
                      if nextCh == 'd' 
-                        then mainLoop mode f (deleteLine buffer) 
-                        else mainLoop mode f buffer
+                        then mainLoop mode f yExt (deleteLine buffer) 
+                        else mainLoop mode f yExt buffer
            'g' -> do nextCh <- getInputChar
                      if nextCh == 'g' 
-                        then mainLoop mode f (moveToHome buffer) 
-                        else mainLoop mode f buffer 
-           'G' -> mainLoop mode f (moveToEnd buffer)
-           '0' -> mainLoop mode f (moveToLineStart buffer)
-           '$' -> mainLoop mode f (moveToLineEnd buffer)
-           'o' -> mainLoop Insert f (insertLineAfter buffer)
+                        then mainLoop mode f yExt (moveToHome buffer) 
+                        else mainLoop mode f yExt buffer 
+           'G' -> mainLoop mode f yExt (moveToEnd buffer)
+           '0' -> mainLoop mode f yExt (moveToLineStart buffer)
+           '$' -> mainLoop mode f yExt (moveToLineEnd buffer)
+           'o' -> mainLoop Insert f yExt (insertLineAfter buffer)
            'r' -> do nextCh <- getInputChar 
                      if isInputChar nextCh
-                       then mainLoop mode f (replaceChar nextCh buffer)
-                       else mainLoop mode f buffer
-           'w' -> mainLoop mode f (wordForward buffer)
-           'b' -> mainLoop mode f (wordBackward buffer)
-           'x' -> mainLoop mode f (deleteChar buffer)
-           _   -> mainLoop mode f buffer
+                       then mainLoop mode f yExt (replaceChar nextCh buffer)
+                       else mainLoop mode f yExt buffer
+           'w' -> mainLoop mode f yExt (wordForward buffer)
+           'b' -> mainLoop mode f yExt (wordBackward buffer)
+           'x' -> mainLoop mode f yExt (deleteChar buffer)
+           _   -> mainLoop mode f yExt buffer
 
 
 -- aborts when line command is not parseable.  Fix with exception catch
-handleCommand :: EditBuffer -> FilePath -> String -> IO ()
-handleCommand buffer f command =
-  do goto commandHome
+handleCommand :: EditBuffer -> FilePath -> Int -> String -> IO ()
+handleCommand buffer f yExt command =
+  do goto (commandHome yExt)
      putStr ":"
      case command of
        ('q':_)                           -> return ()
        ("wq") | not (null f)             -> writeFile f (getBufferContents buffer)
        ('w':_) | not (null f)            -> do writeFile f (getBufferContents buffer)
-                                               mainLoop Command f buffer
-       (c:_)   | isDigit c               -> mainLoop Command f (moveToLine (read command :: Int) buffer)
-       _                                 -> mainLoop Command f buffer
+                                               mainLoop Command f yExt buffer
+       (c:_)   | isDigit c               -> mainLoop Command f yExt (moveToLine (read command :: Int) buffer)
+       _                                 -> mainLoop Command f yExt buffer
 
 isInputChar :: Char -> Bool
 isInputChar ch = (not (isControl ch)) || (ch == '\n')

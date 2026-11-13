@@ -28,7 +28,7 @@ Supported key bindings (command mode):
 Only GHC is required:
 
 ```sh
-ghc --make vih.hs
+ghc --make -package terminal-size vih.hs 
 ./vih somefile.txt
 ```
 

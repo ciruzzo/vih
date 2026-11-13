@@ -102,9 +102,9 @@ wordBackward buffer@(EditBuffer topLine _ contents) =
     []            -> EditBuffer topLine (locationFromPosition 0 contents) contents
     ((_,pos) : _) -> EditBuffer topLine (locationFromPosition (pos+1) contents) contents
 
-frame :: EditBuffer -> EditBuffer
-frame buffer@(EditBuffer topLine (x,y) contents) 
-  | y > topLine + 40 = EditBuffer (y - 40) (x,y) contents
+frame :: Int -> EditBuffer -> EditBuffer
+frame yExt buffer@(EditBuffer topLine (x,y) contents) 
+  | y > topLine + yExt = EditBuffer (y - yExt) (x,y) contents
   | y < topLine      = EditBuffer y (x,y) contents
   | otherwise        = buffer 
 

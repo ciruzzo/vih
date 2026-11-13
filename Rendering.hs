@@ -13,21 +13,20 @@ where
 import EditBuffer
 import System.IO
 
-yExtent :: Int
-yExtent = 40
+-- yExtent :: Int
+-- yExtent = 23
 
 home :: Location
 home = (0,0)
 
-commandHome :: Location
-commandHome = (0, yExtent + 1)
+commandHome :: Int -> Location
+commandHome yExtent = (0, yExtent + 1)
 
 cls :: IO ()
---cls = putStr "\ESC[2J"
 cls = putStr "\ESC[2J\ESC[H"
 
-render :: EditBuffer -> IO ()
-render (EditBuffer topLine (x,y) contents) = do 
+render :: Int -> EditBuffer -> IO ()
+render yExtent (EditBuffer topLine (x,y) contents) = do 
     writeAt home $ window screenLines 
     goto (x, y - topLine)
     where window       = unlines . take yExtent . drop topLine  
