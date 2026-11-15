@@ -105,7 +105,7 @@ wordBackward buffer@(EditBuffer topLine _ contents) =
 
 frame :: Int -> EditBuffer -> EditBuffer
 frame yExt buffer@(EditBuffer topLine (x,y) contents) 
-  | y > topLine + yExt = EditBuffer (y - yExt) (x,y) contents
+  | y >= topLine + yExt = EditBuffer (y - yExt + 1) (x,y) contents
   | y < topLine      = EditBuffer y (x,y) contents
   | otherwise        = buffer 
 

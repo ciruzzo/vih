@@ -20,12 +20,12 @@ commandHome yExtent = (0, yExtent + 1)
 cls :: IO ()
 cls = putStr "\ESC[2J\ESC[H"
 
-render :: Int -> EditBuffer -> IO ()
-render yExtent (EditBuffer topLine (x,y) contents) = do 
+render :: Int -> Int -> EditBuffer -> IO ()
+render yExtent cols (EditBuffer topLine (x,y) contents) = do 
     writeAt home $ window screenLines 
     goto (x, y - topLine)
     where window       = unlines . take yExtent . drop topLine  
-          screenLines  = (lines contents) ++ (repeat "~")
+          screenLines  = map (take cols) (lines contents) ++ (repeat "~")
 
 goto :: Location -> IO ()
 goto (x,y) =

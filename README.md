@@ -16,44 +16,41 @@ Supported key bindings (command mode):
 | `w` `b` | Word-wise movement (forward, backward) |
 | `0` `$` | Beginning / end of line |
 | `gg` `G` | Top / bottom of file |
+| `/` + text | Search forward |
 | `i` | Enter insert mode (`ESC` to leave) |
 | `o` | Open a new line below and enter insert mode |
 | `x` | Delete the character under the cursor |
 | `r` + char | Replace the character under the cursor |
 | `dd` | Delete the current line |
-| `:` + command | Command line (`:w` = save, `:q` = quit, digits = jump to line) |
+| `:` + command | Command line (`:w` = save, `:wq` = save & quit, `:q` = quit, digits = jump to line) |
 
 ## Building and running
 
 Only GHC is required:
 
 ```sh
-ghc --make -package terminal-size vih.hs 
+ghc --make -package terminal-size vih.hs
 ./vih somefile.txt
 ```
 
-## Important note on terminal size
+The editor queries the terminal size at startup (`System.Console.Terminal.Size`)
+and adapts both its screen height and line width to your actual terminal. Any
+reasonable terminal size works; there is no minimum requirement.
 
-This editor hard-codes the screen height as **`yExtent = 40` lines** (Rendering.hs),
-and does not handle wrapping of lines longer than 80 characters.
+## Design notes
 
-**Your terminal should be at least 42 lines × 80 columns.** On a smaller terminal,
-each redraw overflows the screen and causes scrolling, breaking the display.
-To check:
-
-```sh
-stty size
-# e.g. "47 80" = 47 lines × 80 columns → OK
-```
-
-If your terminal is too small, resize it, or adjust `yExtent` in Rendering.hs
-to fit your environment (`commandHome` is derived from `yExtent`, so a single
-change is enough).
+- **Pure core**: `EditBuffer` (buffer and cursor logic) is a fully pure module,
+  so it can be tested with QuickCheck. All I/O lives in `vih.hs`, `Rendering.hs`
+  and `Input.hs`.
+- **Editor state**: the main loop threads a single `Editor` record (mode +
+  session settings + buffer) instead of passing multiple parameters around.
+  Simple single-key commands are dispatched via a key→function table
+  (`keyActions` in EditBuffer.hs).
+- **Terminal adaptation**: height and width are queried at startup. Lines
+  longer than the terminal width are clamped (`take cols`), so one logical
+  line always occupies exactly one physical row.
 
 ## Property tests for the pure core
-
-`EditBuffer` (the core buffer logic) is a fully pure module, structured so
-that QuickCheck properties can be written against it.
 
 On Ubuntu/Debian, install the test dependency as a distro package:
 
@@ -62,7 +59,7 @@ sudo apt install libghc-quickcheck2-dev
 ```
 
 Note that this installs QuickCheck for the distro GHC, not for any GHC
-installed via ghcup. Build the test with the distro GHC:
+installed via ghcup. Build and run the tests with the distro GHC:
 
 ```sh
 ghc --make Eb_Check.hs -o eb_check
@@ -83,23 +80,31 @@ The original repository has been unmaintained since ~2009. This fork fixes:
    called `getArgs` and always started from an empty buffer, so `./vih file`
    displayed nothing
 2. **Saving with `:w`** — added file writing to the command-line handling;
-   the file name is now threaded from `main` through `mainLoop` to `handleCommandLine`
-3. **Rewrote `handleCommandLine` parsing with a `case` expression** — the original
+   the file name is now threaded from `main` through `mainLoop` to the handler
+3. **Rewrote command-line parsing with a `case` expression** — the original
    `head command` crashed on an empty input line (the original source even left
-   the comment "aborts when line command is not parseable. Fix with exception catch");
-   now handled safely with pattern matching
-4. **Fixed ANSI escape sequences** — a stray space in `"; "` inside `goto` silently
-   disabled the CSI cursor-position sequence, and `cls` did not reset the cursor
-   to the origin
-5. **Set stdout to `NoBuffering`** — so escape sequences no longer linger in the
-   output buffer
+   the comment "aborts when line command is not parseable. Fix with exception
+   catch"); now handled safely with pattern matching
+4. **Fixed ANSI escape sequences** — a stray space in `"; "` inside `goto`
+   silently disabled the CSI cursor-position sequence, and `cls` did not reset
+   the cursor to the origin
+5. **Set stdout to `NoBuffering`** — so escape sequences no longer linger in
+   the output buffer
+6. **Dynamic terminal adaptation** — replaced the hard-coded `yExtent = 40`
+   with the terminal's real height (and real width for clamping long lines);
+   fixed the `frame` scroll boundary so the cursor row stays visible at the
+   bottom of the window
+7. **Refactored the main loop around an `Editor` state record** — mode, session
+   settings and buffer travel together, replacing long parameter chains;
+   added forward search (`/`), `keyActions` dispatch table, and `:wq`
 
 ## Known issues / TODO
 
-- Wrap or truncate lines longer than 80 columns
 - Resolve the `[-Wx-partial]` warning on `tail` in `deleteChar`
 - Arrow keys (escape-sequence input) support
 - Undo
+- `n`/`N` repeat-search (currently each `/` requires re-entering the pattern)
+- No wrap-around in search: nothing happens if there is no match after the cursor
 
 ## License
 
